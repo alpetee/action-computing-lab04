@@ -6,7 +6,7 @@ import pandas as pd
 
 app = Dash(
     __name__,
-    external_stylesheets=[dbc.themes.SPACELAB, dbc.icons.FONT_AWESOME],
+    external_stylesheets=[dbc.themes.LUX, dbc.icons.FONT_AWESOME],
 )
 
 #  make dataframe from  spreadsheet:
@@ -183,26 +183,67 @@ Figures
 
 # again, not a callback. just puts visual together. The callback is simpler with this.
 def make_pie(slider_input, title):
-    fig = go.Figure(
-        data=[
-            go.Pie(
-                labels=["Cash", "Bonds", "Stocks"],
-                values=slider_input,
-                textinfo="label+percent",
-                textposition="inside",
-                marker={"colors": [COLORS["cash"], COLORS["bonds"], COLORS["stocks"]]},
-                sort=False,
-                hoverinfo="none",
-            )
-        ]
-    )
+    # Find the index of the highest value
+    sorted_indices = sorted(range(len(slider_input)), key=lambda k: slider_input[k], reverse=True)
+
+    # Reorder slider_input values and labels based on sorted indices
+    sorted_slider_input = [slider_input[i] for i in sorted_indices]
+    sorted_labels = ["Cash", "Bonds", "Stocks"]
+    sorted_labels = [sorted_labels[i] for i in sorted_indices]
+
+    # Calculate total sum to compute percentage
+    total = sum(sorted_slider_input)
+    percentages = [(value / total) * 100 for value in sorted_slider_input]
+
+    # Shades of blue (light to dark)
+    shades_of_blue = ["#1f77b4", "#4d88ff", "#a6c6ff"]  # Light, medium, dark blue a6c6ff
+
+    # Create a stacked bar chart with horizontal bars
+    fig = go.Figure()
+
+    # Add bars in sorted order with different shades of blue
+    for i, label in enumerate(sorted_labels):
+        fig.add_trace(go.Bar(
+            y=["Portfolio"],
+            x=[sorted_slider_input[i]],  # Use sorted values
+            orientation="h",  # Horizontal bar chart
+            name=label,  # Add the corresponding label
+            marker={"color": shades_of_blue[i]},  # Use different shades of blue
+            #             marker={"colors": [COLORS["cash"], COLORS["bonds"], COLORS["stocks"]]},
+            textfont=dict(color="white"),  # Set text color to white
+
+            text=[f'    {percentages[i]:.1f}%'],  # Display label and percentage
+            textposition="inside",  # Position the text inside the bar
+            hoverinfo="none"  # Hide hover info to make the text clearer
+        ))
+
     fig.update_layout(
         title_text=title,
         title_x=0.5,
+        barmode="stack",  # Stack the bars on top of each other
         margin=dict(b=25, t=75, l=35, r=25),
         height=325,
         paper_bgcolor=COLORS["background"],
     )
+    #     data=[
+    #         go.Pie(
+    #             labels=["Cash", "Bonds", "Stocks"],
+    #             values=slider_input,
+    #             textinfo="label+percent",
+    #             textposition="inside",
+    #             marker={"colors": [COLORS["cash"], COLORS["bonds"], COLORS["stocks"]]},
+    #             sort=False,
+    #             hoverinfo="none",
+    #         )
+    #     ]
+    # )
+    # fig.update_layout(
+    #     title_text=title,
+    #     title_x=0.5,
+    #     margin=dict(b=25, t=75, l=35, r=25),
+    #     height=325,
+    #     paper_bgcolor=COLORS["background"],
+    # )
     return fig
 
 
@@ -574,13 +615,18 @@ Main Layout
 
 app.layout = dbc.Container(
     [
-        dbc.Row(
-            dbc.Col(
+        html.Div(
+            [
                 html.H2(
                     "Asset Allocation Visualizer",
-                    className="text-center bg-primary text-white p-2",
+                    className="text-center text-white py-3 mb-0",
                 ),
-            )
+                html.H5(
+                    "Allie Peterson, Westmont College, Community Action Computing (CS-150)",
+                    className="text-center text-white mt-2 mb-0",  # Added margin-bottom here
+                ),
+            ],
+            className="bg-primary w-100",  # Full width background color
         ),
         dbc.Row(
             [
