@@ -17,6 +17,8 @@ for column in df.columns: # fixing error with datatpe not benig float
 MAX_YR = df.Year.max()
 MIN_YR = df.Year.min()
 START_YR = 2007
+history_df = pd.DataFrame(columns=["Timestamp", "Stocks", "Cash", "Bonds", "Investment Style", "Start Amount", "Start Year", "Planning Time"])
+
 
 # since data is as of year end, need to add start year
 df = (
@@ -545,18 +547,28 @@ tabs = dbc.Tabs(
     [
         dbc.Tab(learn_card, tab_id="tab1", label="Learn"),
         dbc.Tab(
-            [asset_allocation_text, slider_card, input_groups, time_period_card],
+            [asset_allocation_text, slider_card, input_groups, time_period_card, dbc.Button("Previous Setting", id="previous-setting", className="mt-4")],
             tab_id="tab-2",
             label="Play",
             className="pb-4",
         ),
         dbc.Tab([results_card, data_source_card], tab_id="tab-3", label="Results"),
+        dbc.Tab(
+            dash_table.DataTable(
+                id="history-table",
+                columns=[{"name": col, "id": col} for col in history_df.columns],
+                data=history_df.to_dict("records"),
+                page_size=15,
+                style_table={"overflowX": "scroll"},
+            ),
+            tab_id="tab-4",
+            label="History",
+        ),
     ],
     id="tabs",
     active_tab="tab-2",
     className="mt-2",
 )
-
 
 """
 ==========================================================================
@@ -712,7 +724,6 @@ app.layout = dbc.Container(
 Callbacks
 """
 
-
 @app.callback(
     Output("allocation_pie_chart", "figure"),
     Input("stock_bond", "value"),
@@ -837,6 +848,33 @@ def update_bonds_chart(stocks, cash):
     # Call the function to generate the bonds chart
     return make_bonds_chart(slider_input)  # Pass only slider_input
 
+@app.callback(
+    Output("history-table", "data"),
+    Output("previous-setting", "disabled"),
+    Input("stock_bond", "value"),
+    Input("cash", "value"),
+    Input("starting_amount", "value"),
+    Input("planning_time", "value"),
+    Input("start_yr", "value"),
+    State("history-table", "data"),
+)
+def update_history(stocks, cash, start_bal, planning_time, start_yr, history_data):
+    if start_bal is None or planning_time is None or start_yr is None:
+        return history_data, len(history_data) == 0
+
+    new_entry = {
+        "Timestamp": pd.Timestamp.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "Stocks": stocks,
+        "Cash": cash,
+        "Bonds": 100 - stocks - cash,
+        "Investment Style": "Aggressive" if stocks >= 70 else "Conservative" if stocks <= 30 else "Moderate",
+        "Start Amount": start_bal,
+        "Start Year": start_yr,
+        "Planning Time": planning_time,
+    }
+
+    history_data.append(new_entry)
+    return history_data, len(history_data) == 0
 
 if __name__ == "__main__":
     app.run(debug=True)
