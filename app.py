@@ -308,6 +308,50 @@ def make_line_chart(dff):
     return fig
 
 
+def make_bonds_chart(slider_input):
+    # The input should be [cash, bonds, stocks]
+    bonds_value = slider_input[1]  # This is the bonds allocation
+    remaining_value = 100 - bonds_value  # This is the remaining value (100% - bonds)
+
+    # Create a horizontal bar chart for bonds allocation
+    fig = go.Figure()
+
+    # Add the bonds value as a horizontal bar
+    fig.add_trace(go.Bar(
+        y=["Bonds"],
+        x=[bonds_value],  # Only display the bonds value
+        orientation="h",  # Horizontal bar chart
+        name="Bonds",  # Label the bar
+        marker={"color": "#1f77b4"},  # Use a blue color for bonds
+        textfont=dict(color="white"),  # Set text color to white
+        text=[f'{bonds_value:.1f}%'],  # Display the percentage
+        textposition="inside",  # Position the text inside the bar
+        hoverinfo="none",  # Hide hover info
+        showlegend=False
+    ))
+    # remaining value as a lighter blue bar stacked on top of the bonds bar
+    fig.add_trace(go.Bar(
+        y=["Bonds"],
+        x=[remaining_value],  # Remaining value (100% - bonds)
+        orientation="h",  # Horizontal bar chart
+        marker={"color": "#a6c6ff"},  # Light blue for the remaining value
+        hoverinfo="none",  # Hide hover info
+        showlegend=False
+    ))
+
+    # Update layout for the chart
+    fig.update_layout(
+        title="Bonds Allocation",
+        title_x=0.5,
+        height=200,
+        margin=dict(b=25, t=50, l=35, r=25),
+        paper_bgcolor=COLORS["background"],  # Adjust background color
+        barmode="stack",  # Stack the bars on top of each other
+    )
+
+    return fig
+
+
 """
 ==========================================================================
 Make Tabs
@@ -646,6 +690,17 @@ app.layout = dbc.Container(
             ],
             className="ms-1",
         ),
+        dbc.Row(
+            dbc.Col(
+                [
+                    html.H3("Bonds Allocation", className="text-center mt-4 mb-3"),
+                    dcc.Graph(id="bonds_chart", className="pb-4"),  # New chart for Bonds Allocation
+                ],
+                width=12,
+            ),
+            className="ms-1 mt-4",  # Add margin-top to give space between rows
+        ),
+
         dbc.Row(dbc.Col(footer)),
     ],
     fluid=True,
@@ -768,6 +823,19 @@ def update_totals(stocks, cash, start_bal, planning_time, start_yr):
     ending_cagr = cagr(dff["Total"])
 
     return data, fig, summary_table, ending_amount, ending_cagr
+
+@app.callback(
+    Output("bonds_chart", "figure"),  # Update the bonds chart
+    Input("stock_bond", "value"),
+    Input("cash", "value"),
+)
+def update_bonds_chart(stocks, cash):
+    # Calculate the bond allocation
+    bonds = 100 - stocks - cash
+    slider_input = [cash, bonds, stocks]
+
+    # Call the function to generate the bonds chart
+    return make_bonds_chart(slider_input)  # Pass only slider_input
 
 
 if __name__ == "__main__":
